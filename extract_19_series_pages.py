@@ -3,7 +3,7 @@ import os
 import re
 
 # File path
-file_to_process ="file_to_process = input("Enter PDF path: ")"
+file_to_process =file_to_process = "/path/to/highway_planning1.pdf"
 
 def generate_simplified_scale_report(pdf_path):
     if not os.path.exists(pdf_path):
