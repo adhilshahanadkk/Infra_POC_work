@@ -776,6 +776,10 @@ else:
                                 * **Proposed Grade:** `{pg_r[0]:,.1f}` to `{pg_r[1]:,.1f}` ft (span: `{pg_r[1]-pg_r[0]:,.1f}`)
                                 * **Overlap (earthwork zone):** `{ov_r[0]:,.1f}` to `{ov_r[1]:,.1f}` ft (width: `{nd.get('overlap_width', ov_r[1]-ov_r[0]):,.1f}`)
 
+                                **Densification (breakpoint interpolation):**
+                                * **EG Points:** `{nd.get('existing_points_raw', '—')}` raw → `{nd.get('existing_points_densified', '—')}` densified
+                                * **PG Points:** `{nd.get('proposed_points_raw', '—')}` raw → `{nd.get('proposed_points_densified', '—')}` densified
+
                                 **Grid Details:**
                                 * **Grid Step Interval:** `{sr.normalized.station_interval:.2f}` ft
                                 * **Total Grid Points:** `{len(sr.normalized.stations)}`

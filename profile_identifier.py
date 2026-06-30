@@ -920,6 +920,28 @@ class ProfileIdentifier:
         return float(np.mean(np.abs(d2y_dx2)))
 
     # -----------------------------------------------------------------
+    #  color matching
+    # -----------------------------------------------------------------
+
+    @staticmethod
+    def _colors_match(c1, c2, tol=0.05):
+        """True if two RGB tuples are within tolerance per channel.
+
+        CAD exports often produce slightly different RGB values for the
+        same logical line (e.g. layer overrides, rounding).  This lets
+        the strict merge pass treat near-identical colors as equal.
+        """
+        if c1 == c2:
+            return True
+        if c1 is None or c2 is None:
+            return c1 is None and c2 is None
+        if not (isinstance(c1, (tuple, list)) and isinstance(c2, (tuple, list))):
+            return c1 == c2
+        if len(c1) != len(c2):
+            return False
+        return all(abs(a - b) <= tol for a, b in zip(c1, c2))
+
+    # -----------------------------------------------------------------
     #  color bucketing
     # -----------------------------------------------------------------
 
