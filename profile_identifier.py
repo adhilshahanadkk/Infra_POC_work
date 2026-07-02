@@ -171,23 +171,29 @@ class ProfileIdentifier:
                     scored.append(comp_scored[0])
                     scored.sort(key=lambda x: x[1], reverse=True)
 
-        # populate final output
+        # populate final output — densify polylines so shading boundaries
+        # hug the actual road surface instead of cutting corners between
+        # sparse breakpoints.
         if result.existing_ground:
-            result.existing_ground_points = sorted(result.existing_ground.points, key=lambda p: p[0])
+            raw_eg = sorted(result.existing_ground.points, key=lambda p: p[0])
+            result.existing_ground_points = self._densify_points(raw_eg)
             result.existing_ground_score = next(
                 (s for p, s in scored if p is result.existing_ground), 0.0
             )
         if result.proposed_grade:
-            result.proposed_grade_points = sorted(result.proposed_grade.points, key=lambda p: p[0])
+            raw_pg = sorted(result.proposed_grade.points, key=lambda p: p[0])
+            result.proposed_grade_points = self._densify_points(raw_pg)
             result.proposed_grade_score = next(
                 (s for p, s in scored if p is result.proposed_grade), 0.0
             )
 
+        diag["existing_ground_points_raw"] = len(result.existing_ground.points) if result.existing_ground else 0
         diag["existing_ground_points"] = len(result.existing_ground_points)
         diag["existing_ground_length"] = round(result.existing_ground.length, 1) if result.existing_ground else 0
         diag["existing_ground_score"] = round(result.existing_ground_score, 2)
         diag["existing_ground_dashes"] = result.existing_ground.dashes if result.existing_ground else None
         diag["existing_ground_dash_ratio"] = round(self._dash_ratio(result.existing_ground), 2) if result.existing_ground else None
+        diag["proposed_grade_points_raw"] = len(result.proposed_grade.points) if result.proposed_grade else 0
         diag["proposed_grade_points"] = len(result.proposed_grade_points)
         diag["proposed_grade_length"] = round(result.proposed_grade.length, 1) if result.proposed_grade else 0
         diag["proposed_grade_score"] = round(result.proposed_grade_score, 2)
@@ -1120,3 +1126,50 @@ class ProfileIdentifier:
             "confidence": round(conf, 2),
             "method": diag.get("classification_rule", "unknown"),
         }
+
+    # -----------------------------------------------------------------
+    #  polyline densification
+    # -----------------------------------------------------------------
+
+    def _densify_points(self, points, max_gap=2.0):
+        """Insert intermediate points between sparse vertices in PDF space.
+
+        For each pair of consecutive points whose Euclidean distance
+        exceeds *max_gap*, linearly interpolate new points at
+        *max_gap*-wide steps.  Original breakpoints are always preserved
+        so the polyline shape is unchanged.
+
+        Parameters
+        ----------
+        points : list of (x, y) tuples
+            Sorted PDF-coordinate polyline vertices.
+        max_gap : float
+            Maximum allowed distance (in PDF points) between consecutive
+            vertices.  Gaps larger than this get filled with interpolated
+            points.
+
+        Returns
+        -------
+        list of (x, y) tuples
+            Densified polyline.
+        """
+        if len(points) < 2:
+            return list(points)
+
+        dense = [points[0]]
+        for i in range(1, len(points)):
+            x0, y0 = points[i - 1]
+            x1, y1 = points[i]
+            dist = ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
+
+            if dist > max_gap:
+                n_seg = int(dist / max_gap) + 1
+                for k in range(1, n_seg):
+                    t = k / n_seg
+                    dense.append((
+                        round(x0 + t * (x1 - x0), 4),
+                        round(y0 + t * (y1 - y0), 4),
+                    ))
+            dense.append(points[i])
+
+        return dense
